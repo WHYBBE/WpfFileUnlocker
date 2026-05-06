@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -84,98 +85,66 @@ internal static class RestartManager
         public string ProcessName { get; init; } = "";
         public string ExePath { get; init; } = "";
         public string LockedFile { get; init; } = "";
-
-        public LockInfo WithLockedFile(string lockedFile) => new()
-        {
-            ProcessId = ProcessId,
-            AppName = AppName,
-            ProcessName = ProcessName,
-            ExePath = ExePath,
-            LockedFile = lockedFile
-        };
     }
 
     public static List<LockInfo> GetLockingProcesses(string path)
     {
-        var results = new Dictionary<int, LockInfo>();
+        var pidFiles = new ConcurrentDictionary<int, ConcurrentBag<string>>();
         int selfPid = Environment.ProcessId;
 
-        try
-        {
-            var rmLocks = QueryRM([path]);
-            foreach (var l in rmLocks)
-                if (l.ProcessId != selfPid)
-                    results[l.ProcessId] = l;
-        }
-        catch { }
+        foreach (var pid in QueryFilePids(path))
+            if (pid != selfPid)
+                pidFiles.GetOrAdd(pid, _ => []).Add(path);
 
-        try
-        {
-            var pids = QueryFilePids(path);
-            foreach (var pid in pids)
-            {
-                if (pid == selfPid || results.ContainsKey(pid)) continue;
-                results[pid] = BuildLockInfo(pid, "", path);
-            }
-        }
-        catch { }
+        foreach (var kv in QueryRMSingle(path))
+            if (kv.Key != selfPid && !pidFiles.ContainsKey(kv.Key))
+                pidFiles.GetOrAdd(kv.Key, _ => []).Add(path);
 
-        return results.Values.ToList();
+        return BuildResults(pidFiles);
     }
 
     public static List<LockInfo> GetLockingProcessesForFolder(string folderPath)
     {
-        var allLocks = new Dictionary<int, LockInfo>();
+        var pidFiles = new ConcurrentDictionary<int, ConcurrentBag<string>>();
         int selfPid = Environment.ProcessId;
 
-        try
-        {
-            var rmLocks = QueryRM([folderPath]);
-            foreach (var l in rmLocks)
-                if (l.ProcessId != selfPid)
-                    allLocks[l.ProcessId] = l;
-        }
-        catch { }
+        var allPaths = new List<string> { folderPath };
+        try { allPaths.AddRange(Directory.EnumerateDirectories(folderPath, "*", SearchOption.AllDirectories).Take(500)); } catch { }
+        try { allPaths.AddRange(Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories).Take(2000)); } catch { }
 
-        try
-        {
-            var files = Directory.EnumerateFiles(folderPath, "*", SearchOption.TopDirectoryOnly).Take(500).ToArray();
-            const int batchSize = 100;
-            for (int i = 0; i < files.Length; i += batchSize)
+        Parallel.ForEach(allPaths, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+            path =>
             {
-                var batch = files[i..Math.Min(i + batchSize, files.Length)];
-                var batchLocks = QueryRM(batch);
-                foreach (var l in batchLocks)
-                    if (l.ProcessId != selfPid && !allLocks.ContainsKey(l.ProcessId))
-                        allLocks[l.ProcessId] = l;
-            }
-        }
-        catch { }
+                try
+                {
+                    foreach (var pid in QueryFilePids(path))
+                        if (pid != selfPid)
+                            pidFiles.GetOrAdd(pid, _ => []).Add(path);
+                }
+                catch { }
+            });
 
         try
         {
-            var pids = QueryFilePids(folderPath);
-            foreach (var pid in pids)
-            {
-                if (pid == selfPid || allLocks.ContainsKey(pid)) continue;
-                allLocks[pid] = BuildLockInfo(pid, "", folderPath);
-            }
+            foreach (var kv in QueryRMSingle(folderPath))
+                if (kv.Key != selfPid && !pidFiles.ContainsKey(kv.Key))
+                    pidFiles.GetOrAdd(kv.Key, _ => []).Add(folderPath);
         }
         catch { }
 
-        return allLocks.Values.ToList();
+        return BuildResults(pidFiles);
     }
 
-    private static List<LockInfo> QueryRM(string[] paths)
+    private static Dictionary<int, string> QueryRMSingle(string path)
     {
-        var result = new List<LockInfo>();
+        var result = new Dictionary<int, string>();
 
         int res = RmStartSession(out int sessionHandle, 0, Guid.NewGuid().ToString());
         if (res != 0) return result;
 
         try
         {
-            res = RmRegisterResources(sessionHandle, (uint)paths.Length, paths, 0, IntPtr.Zero, 0, IntPtr.Zero);
+            res = RmRegisterResources(sessionHandle, 1, [path], 0, IntPtr.Zero, 0, IntPtr.Zero);
             if (res != 0) return result;
 
             uint pnProcInfo = 0;
@@ -190,13 +159,8 @@ internal static class RestartManager
                 res = RmGetList(sessionHandle, out pnProcInfoNeeded, ref pnProcInfo, processInfo, ref lpdwRebootReasons);
 
                 if (res == 0)
-                {
                     for (int i = 0; i < (int)pnProcInfo; i++)
-                    {
-                        var pi = processInfo[i];
-                        result.Add(BuildLockInfo(pi.Process.dwProcessId, pi.strAppName, paths.Length == 1 ? paths[0] : ""));
-                    }
-                }
+                        result[processInfo[i].Process.dwProcessId] = processInfo[i].strAppName;
             }
         }
         finally
@@ -259,37 +223,47 @@ internal static class RestartManager
         return result;
     }
 
-    private static LockInfo BuildLockInfo(int pid, string appName, string lockedFile)
+    private static List<LockInfo> BuildResults(ConcurrentDictionary<int, ConcurrentBag<string>> pidFiles)
     {
-        string procName;
-        string exePath;
-        string displayName;
-        try
+        var results = new List<LockInfo>();
+
+        foreach (var kv in pidFiles)
         {
-            using var proc = Process.GetProcessById(pid);
-            procName = proc.ProcessName;
-            exePath = TryGetProcessPath(proc);
-            displayName = GetFileDescription(exePath);
-        }
-        catch
-        {
-            procName = $"<PID:{pid}>";
-            exePath = "";
-            displayName = "";
+            int pid = kv.Key;
+            var files = kv.Value.Distinct().ToList();
+
+            string procName, exePath, displayName;
+            try
+            {
+                using var proc = Process.GetProcessById(pid);
+                procName = proc.ProcessName;
+                exePath = TryGetProcessPath(proc);
+                displayName = GetFileDescription(exePath);
+            }
+            catch
+            {
+                procName = $"<PID:{pid}>";
+                exePath = "";
+                displayName = "";
+            }
+
+            var effectiveName = !string.IsNullOrWhiteSpace(displayName) ? displayName : procName;
+
+            var lockedFile = files.Count <= 3
+                ? string.Join("\n", files)
+                : string.Join("\n", files.Take(3)) + $"\n...等{files.Count}个文件";
+
+            results.Add(new LockInfo
+            {
+                ProcessId = pid,
+                AppName = effectiveName,
+                ProcessName = procName,
+                ExePath = exePath,
+                LockedFile = lockedFile
+            });
         }
 
-        var effectiveName = !string.IsNullOrWhiteSpace(displayName) ? displayName
-            : !string.IsNullOrWhiteSpace(appName) ? appName
-            : procName;
-
-        return new LockInfo
-        {
-            ProcessId = pid,
-            AppName = effectiveName,
-            ProcessName = procName,
-            ExePath = exePath,
-            LockedFile = lockedFile
-        };
+        return results;
     }
 
     private static string GetFileDescription(string exePath)

@@ -10,6 +10,8 @@ public partial class MainWindow : Window
     private static readonly SolidColorBrush ColorSuccess = new(System.Windows.Media.Color.FromRgb(0x10, 0x89, 0x3e));
     private static readonly SolidColorBrush ColorDanger = new(System.Windows.Media.Color.FromRgb(0xe8, 0x11, 0x23));
 
+    private CancellationTokenSource? _cts;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -79,7 +81,7 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void DoDetect(string path)
+    private async void DoDetect(string path)
     {
         var isDir = System.IO.Directory.Exists(path);
         var isFile = System.IO.File.Exists(path);
@@ -93,42 +95,50 @@ public partial class MainWindow : Window
             return;
         }
 
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
         StatusText.Text = "正在检测...";
         StatusText.Foreground = ColorMuted;
         ResultList.Items.Clear();
         BottomStatus.Text = "检测中...";
 
-        Dispatcher.InvokeAsync(() =>
+        try
         {
-            try
+            var locks = await Task.Run(() =>
             {
-                var locks = isDir
+                return isDir
                     ? RestartManager.GetLockingProcessesForFolder(path)
                     : RestartManager.GetLockingProcesses(path);
+            }, token);
 
-                if (locks.Count == 0)
-                {
-                    StatusText.Text = isDir ? "该文件夹未被任何进程占用" : "该文件未被任何进程占用";
-                    StatusText.Foreground = ColorSuccess;
-                    BottomStatus.Text = "空闲，无占用";
-                }
-                else
-                {
-                    var label = isDir ? "文件夹" : "文件";
-                    StatusText.Text = $"发现 {locks.Count} 个进程占用该{label}";
-                    StatusText.Foreground = ColorDanger;
-                    foreach (var info in locks)
-                        ResultList.Items.Add(info);
-                    BottomStatus.Text = $"共 {locks.Count} 个进程占用";
-                }
-            }
-            catch (Exception ex)
+            if (token.IsCancellationRequested) return;
+
+            if (locks.Count == 0)
             {
-                StatusText.Text = "检测出错: " + ex.Message;
-                StatusText.Foreground = ColorDanger;
-                BottomStatus.Text = "检测失败";
+                StatusText.Text = isDir ? "该文件夹未被任何进程占用" : "该文件未被任何进程占用";
+                StatusText.Foreground = ColorSuccess;
+                BottomStatus.Text = "空闲，无占用";
             }
-        }, System.Windows.Threading.DispatcherPriority.Background);
+            else
+            {
+                var label = isDir ? "文件夹" : "文件";
+                StatusText.Text = $"发现 {locks.Count} 个进程占用该{label}";
+                StatusText.Foreground = ColorDanger;
+                foreach (var info in locks)
+                    ResultList.Items.Add(info);
+                BottomStatus.Text = $"共 {locks.Count} 个进程占用";
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            if (token.IsCancellationRequested) return;
+            StatusText.Text = "检测出错: " + ex.Message;
+            StatusText.Foreground = ColorDanger;
+            BottomStatus.Text = "检测失败";
+        }
     }
 
     private void KillProcess_Click(object sender, RoutedEventArgs e)
