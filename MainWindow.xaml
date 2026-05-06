@@ -79,11 +79,29 @@
         <Border x:Name="DropZone" Grid.Row="1" Margin="16,8,16,0"
             Background="#ffffff" CornerRadius="8" Padding="20,16"
             BorderBrush="#c0c0c0" BorderThickness="1">
-            <TextBlock x:Name="StatusText" Text="拖拽文件或文件夹到此处，或输入路径后点击检测"
-                    FontSize="13" Foreground="#888888" HorizontalAlignment="Center"/>
+            <Grid>
+                <TextBlock x:Name="StatusText" Text="拖拽文件或文件夹到此处，或输入路径后点击检测"
+                        FontSize="13" Foreground="#888888" HorizontalAlignment="Center"/>
+            </Grid>
         </Border>
 
-        <Border Grid.Row="2" Margin="16,8,16,0" Background="#ffffff" CornerRadius="8"
+        <Border Grid.Row="2" Margin="16,6,16,0" Background="#ffffff" CornerRadius="8" Padding="10,8"
+                BorderBrush="#e0e0e0" BorderThickness="1">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="文件夹扫描深度：" FontSize="12" Foreground="#666666" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <RadioButton x:Name="ScanCurrent" Content="仅当前目录" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"
+                             Foreground="#333333" IsChecked="True" GroupName="ScanDepth"/>
+                <RadioButton x:Name="ScanOneLevel" Content="含一层子目录" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"
+                             Foreground="#333333" GroupName="ScanDepth"/>
+                <RadioButton x:Name="ScanRecursive" Content="递归所有子目录" FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0"
+                             Foreground="#333333" GroupName="ScanDepth"/>
+                <Separator Style="{x:Null}" Width="1" Background="#e0e0e0" Margin="0,2"/>
+                <CheckBox x:Name="IgnoreGit" Content="跳过 .git 目录" FontSize="12" VerticalAlignment="Center"
+                          Foreground="#333333" IsChecked="True" Margin="16,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3" Margin="16,8,16,0" Background="#ffffff" CornerRadius="8"
                 BorderBrush="#e8e8e8" BorderThickness="1" ClipToBounds="True">
             <ListView x:Name="ResultList"
                   Background="Transparent" BorderThickness="0"
@@ -170,7 +188,7 @@
             </ListView>
         </Border>
 
-        <TextBlock x:Name="BottomStatus" Grid.Row="3" FontSize="12" Foreground="#888888"
+        <TextBlock x:Name="BottomStatus" Grid.Row="4" FontSize="12" Foreground="#888888"
                 Margin="16,6,0,6" VerticalAlignment="Bottom" HorizontalAlignment="Left" Text="就绪"/>
     </Grid>
 </Window>

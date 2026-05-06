@@ -103,14 +103,61 @@ internal static class RestartManager
         return BuildResults(pidFiles);
     }
 
-    public static List<LockInfo> GetLockingProcessesForFolder(string folderPath)
+    public enum ScanDepth
+    {
+        CurrentOnly,
+        OneLevel,
+        Recursive
+    }
+
+    public static List<LockInfo> GetLockingProcessesForFolder(string folderPath, ScanDepth scanDepth, bool ignoreGit)
     {
         var pidFiles = new ConcurrentDictionary<int, ConcurrentBag<string>>();
         int selfPid = Environment.ProcessId;
 
         var allPaths = new List<string> { folderPath };
-        try { allPaths.AddRange(Directory.EnumerateDirectories(folderPath, "*", SearchOption.AllDirectories).Take(500)); } catch { }
-        try { allPaths.AddRange(Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories).Take(2000)); } catch { }
+
+        if (scanDepth == ScanDepth.CurrentOnly)
+        {
+            // 只检测文件夹自身
+        }
+        else if (scanDepth == ScanDepth.OneLevel)
+        {
+            // 当前目录下的文件和子目录（不进入子目录内部）
+            try
+            {
+                var files = Directory.EnumerateFiles(folderPath, "*", SearchOption.TopDirectoryOnly);
+                if (ignoreGit) files = files.Where(f => !IsUnderGit(f));
+                allPaths.AddRange(files.Take(2000));
+            }
+            catch { }
+
+            try
+            {
+                var dirs = Directory.EnumerateDirectories(folderPath, "*", SearchOption.TopDirectoryOnly);
+                if (ignoreGit) dirs = dirs.Where(d => !d.EndsWith(".git", StringComparison.OrdinalIgnoreCase));
+                allPaths.AddRange(dirs.Take(500));
+            }
+            catch { }
+        }
+        else
+        {
+            try
+            {
+                var dirs = Directory.EnumerateDirectories(folderPath, "*", SearchOption.AllDirectories);
+                if (ignoreGit) dirs = dirs.Where(d => !IsUnderGit(d));
+                allPaths.AddRange(dirs.Take(500));
+            }
+            catch { }
+
+            try
+            {
+                var files = Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories);
+                if (ignoreGit) files = files.Where(f => !IsUnderGit(f));
+                allPaths.AddRange(files.Take(2000));
+            }
+            catch { }
+        }
 
         Parallel.ForEach(allPaths, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
             path =>
@@ -296,7 +343,20 @@ internal static class RestartManager
         }
     }
 
-    private static class Imports
+        private static bool IsUnderGit(string path)
+        {
+            var span = path.AsSpan();
+            for (int i = 0; i < span.Length - 4; i++)
+            {
+                if ((span[i] == '\\' || span[i] == '/')
+                    && span.Slice(i + 1, 4).Equals(".git", StringComparison.OrdinalIgnoreCase)
+                    && (i + 5 >= span.Length || span[i + 5] == '\\' || span[i + 5] == '/'))
+                    return true;
+            }
+            return false;
+        }
+
+        private static class Imports
     {
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern bool QueryFullProcessImageName(IntPtr hProcess, int dwFlags, StringBuilder lpExeName, ref uint lpdwSize);

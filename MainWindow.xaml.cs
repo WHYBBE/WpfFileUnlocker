@@ -104,12 +104,18 @@ public partial class MainWindow : Window
         ResultList.Items.Clear();
         BottomStatus.Text = "检测中...";
 
+        var scanDepth = RestartManager.ScanDepth.Recursive;
+        if (ScanOneLevel.IsChecked == true) scanDepth = RestartManager.ScanDepth.OneLevel;
+        else if (ScanCurrent.IsChecked == true) scanDepth = RestartManager.ScanDepth.CurrentOnly;
+
+        var ignoreGit = IgnoreGit.IsChecked == true;
+
         try
         {
             var locks = await Task.Run(() =>
             {
                 return isDir
-                    ? RestartManager.GetLockingProcessesForFolder(path)
+                    ? RestartManager.GetLockingProcessesForFolder(path, scanDepth, ignoreGit)
                     : RestartManager.GetLockingProcesses(path);
             }, token);
 
