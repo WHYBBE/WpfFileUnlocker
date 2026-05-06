@@ -1,0 +1,173 @@
+﻿<Window x:Class="FileUnlocker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FileUnlocker - 文件占用检测" Height="540" Width="780"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        Drop="Window_Drop" DragOver="Window_DragOver"
+        Background="#f5f5f5" Foreground="#333333"
+        ResizeMode="NoResize">
+    <Window.Resources>
+        <Style x:Key="HoverButton" TargetType="Button">
+            <Setter Property="Background" Value="#e0e0e0"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#d0d0d0"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#bcbcbc"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource HoverButton}">
+            <Setter Property="Background" Value="#e81123"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#ff4a5e"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Margin="16,12,16,0" Background="#ffffff" CornerRadius="8" Padding="12"
+                BorderBrush="#e0e0e0" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="FilePathBox" Grid.Column="0"
+                     Background="#f9f9f9" Foreground="#333333" BorderThickness="1"
+                     BorderBrush="#d0d0d0" Padding="8,6" FontSize="14" VerticalContentAlignment="Center"
+                     CaretBrush="#0078d4" SelectionBrush="#cce4f7"/>
+                <Button Grid.Column="1" Content="选择文件" Style="{StaticResource HoverButton}"
+                    Margin="8,0,0,0" Click="BrowseFile_Click"/>
+                <Button Grid.Column="2" Content="选择文件夹" Style="{StaticResource HoverButton}"
+                    Margin="8,0,0,0" Click="BrowseFolder_Click"/>
+                <Button Grid.Column="3" Content="检测" Style="{StaticResource HoverButton}"
+                    Background="#0078d4" Foreground="White" FontWeight="SemiBold"
+                    Margin="8,0,0,0" Click="Detect_Click"/>
+            </Grid>
+        </Border>
+
+        <Border x:Name="DropZone" Grid.Row="1" Margin="16,8,16,0"
+            Background="#ffffff" CornerRadius="8" Padding="20,16"
+            BorderBrush="#c0c0c0" BorderThickness="1">
+            <TextBlock x:Name="StatusText" Text="拖拽文件或文件夹到此处，或输入路径后点击检测"
+                    FontSize="13" Foreground="#888888" HorizontalAlignment="Center"/>
+        </Border>
+
+        <Border Grid.Row="2" Margin="16,8,16,0" Background="#ffffff" CornerRadius="8"
+                BorderBrush="#e8e8e8" BorderThickness="1" ClipToBounds="True">
+            <ListView x:Name="ResultList"
+                  Background="Transparent" BorderThickness="0"
+                  Foreground="#333333" FontSize="13" Padding="0"
+                  SelectionMode="Single" Margin="0">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="#333333"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Padding" Value="6,10"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="#f0f0f0" BorderThickness="0,0,0,1" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                                        <GridViewRowPresenter Content="{TemplateBinding Content}" Columns="{Binding Path=View.Columns, RelativeSource={RelativeSource AncestorType=ListView}}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#f5f8fc"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#e8f0fe"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="PID" Width="70">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Background="#e8f0fe" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                        <TextBlock Text="{Binding ProcessId}" Foreground="#0078d4" FontWeight="SemiBold" FontSize="12"/>
+                                    </Border>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="进程名" Width="130">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Width="20" Height="20" CornerRadius="4" Background="#e6f4ea" Margin="0,0,6,0">
+                                            <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#10893e" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding ProcessName}" Foreground="#1a1a1a" FontWeight="Medium" ToolTip="{Binding ExePath}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="应用名" Width="160">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding AppName}" Foreground="#555555"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="程序路径" Width="220">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding ExePath}" Foreground="#999999" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip="{Binding ExePath}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="操作" Width="80">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="结束"
+                                        Style="{StaticResource DangerButton}"
+                                        Padding="10,4" FontSize="12" FontFamily="Microsoft YaHei UI"
+                                        Click="KillProcess_Click" Tag="{Binding ProcessId}"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </Border>
+
+        <TextBlock x:Name="BottomStatus" Grid.Row="3" FontSize="12" Foreground="#888888"
+                Margin="16,6,0,6" VerticalAlignment="Bottom" HorizontalAlignment="Left" Text="就绪"/>
+    </Grid>
+</Window>
