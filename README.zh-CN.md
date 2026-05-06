@@ -37,7 +37,7 @@ dotnet build -c Release
 
 ## 开源协议
 
-本项目基于 [MIT 协议](LICENSE.txt) 开源。
+本项目基于 [MIT 协议](LICENSE) 开源。
 
 ---
 

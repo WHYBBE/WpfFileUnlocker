@@ -41,7 +41,7 @@ The output is in `bin/Release/net10.0-windows/`.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE.txt).
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
