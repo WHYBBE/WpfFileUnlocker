@@ -43,6 +43,14 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="LangButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#0078d4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="4,2"/>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="0">
@@ -67,11 +75,11 @@
                      Background="#f9f9f9" Foreground="#333333" BorderThickness="1"
                      BorderBrush="#d0d0d0" Padding="8,6" FontSize="14" VerticalContentAlignment="Center"
                      CaretBrush="#0078d4" SelectionBrush="#cce4f7"/>
-                <Button Grid.Column="1" Content="选择文件" Style="{StaticResource HoverButton}"
+                <Button x:Name="BrowseFileBtn" Grid.Column="1" Content="选择文件" Style="{StaticResource HoverButton}"
                     Margin="8,0,0,0" Click="BrowseFile_Click"/>
-                <Button Grid.Column="2" Content="选择文件夹" Style="{StaticResource HoverButton}"
+                <Button x:Name="BrowseFolderBtn" Grid.Column="2" Content="选择文件夹" Style="{StaticResource HoverButton}"
                     Margin="8,0,0,0" Click="BrowseFolder_Click"/>
-                <Button Grid.Column="3" Content="检测" Style="{StaticResource HoverButton}"
+                <Button x:Name="DetectBtn" Grid.Column="3" Content="检测" Style="{StaticResource HoverButton}"
                     Background="#0078d4" Foreground="White" FontWeight="SemiBold"
                     Margin="8,0,0,0" Click="Detect_Click"/>
             </Grid>
@@ -80,16 +88,14 @@
         <Border x:Name="DropZone" Grid.Row="1" Margin="16,8,16,0"
             Background="#ffffff" CornerRadius="8" Padding="20,16"
             BorderBrush="#c0c0c0" BorderThickness="1">
-            <Grid>
-                <TextBlock x:Name="StatusText" Text="拖拽文件或文件夹到此处，或输入路径后点击检测"
-                        FontSize="13" Foreground="#888888" HorizontalAlignment="Center"/>
-            </Grid>
+            <TextBlock x:Name="StatusText" Text="拖拽文件或文件夹到此处，或输入路径后点击检测"
+                    FontSize="13" Foreground="#888888" HorizontalAlignment="Center"/>
         </Border>
 
         <Border Grid.Row="2" Margin="16,6,16,0" Background="#ffffff" CornerRadius="8" Padding="10,8"
                 BorderBrush="#e0e0e0" BorderThickness="1">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="文件夹扫描深度：" FontSize="12" Foreground="#666666" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock x:Name="ScanDepthLabel" Text="文件夹扫描深度：" FontSize="12" Foreground="#666666" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <RadioButton x:Name="ScanCurrent" Content="仅当前目录" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"
                              Foreground="#333333" GroupName="ScanDepth"/>
                 <RadioButton x:Name="ScanOneLevel" Content="含一层子目录" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"
@@ -189,7 +195,12 @@
             </ListView>
         </Border>
 
-        <TextBlock x:Name="BottomStatus" Grid.Row="4" FontSize="12" Foreground="#888888"
-                Margin="16,6,0,6" VerticalAlignment="Bottom" HorizontalAlignment="Left" Text="就绪"/>
+        <Grid Grid.Row="4" Margin="0,0,0,0">
+            <TextBlock x:Name="BottomStatus" FontSize="12" Foreground="#888888"
+                    Margin="16,6,0,6" VerticalAlignment="Bottom" HorizontalAlignment="Left" Text="就绪"/>
+            <Button x:Name="LangToggle" Content="语言" Style="{StaticResource LangButton}"
+                    Margin="0,6,16,6" VerticalAlignment="Center" HorizontalAlignment="Right"
+                    Click="LangToggle_Click"/>
+        </Grid>
     </Grid>
 </Window>

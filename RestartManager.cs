@@ -271,17 +271,17 @@ internal static class RestartManager
             }
 
             var isSelf = pid == selfPid;
-            var effectiveName = (!string.IsNullOrWhiteSpace(displayName) ? displayName : procName) + (isSelf ? " (当前进程)" : "");
+            var effectiveName = (!string.IsNullOrWhiteSpace(displayName) ? displayName : procName) + (isSelf ? L.SelfProcess : "");
 
             var lockedFile = files.Count <= 3
                 ? string.Join("\n", files)
-                : string.Join("\n", files.Take(3)) + $"\n...等{files.Count}个文件";
+                : string.Join("\n", files.Take(3)) + L.MoreFiles(files.Count - 3);
 
             results.Add(new LockInfo
             {
                 ProcessId = pid,
                 AppName = effectiveName,
-                ProcessName = procName + (isSelf ? " (当前进程)" : ""),
+                ProcessName = procName + (isSelf ? L.SelfProcess : ""),
                 ExePath = exePath,
                 LockedFile = lockedFile
             });

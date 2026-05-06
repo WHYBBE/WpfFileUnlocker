@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace FileUnlocker;
@@ -14,12 +15,75 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        Settings.Load();
         InitializeComponent();
+        ApplySettings();
+        ApplyLanguage();
+    }
+
+    private void ApplySettings()
+    {
+        ScanCurrent.IsChecked = Settings.ScanDepth == RestartManager.ScanDepth.CurrentOnly;
+        ScanOneLevel.IsChecked = Settings.ScanDepth == RestartManager.ScanDepth.OneLevel;
+        ScanRecursive.IsChecked = Settings.ScanDepth == RestartManager.ScanDepth.Recursive;
+        IgnoreGit.IsChecked = Settings.IgnoreGit;
+    }
+
+    private void SaveSettings()
+    {
+        Settings.ScanDepth = ScanRecursive.IsChecked == true ? RestartManager.ScanDepth.Recursive
+            : ScanOneLevel.IsChecked == true ? RestartManager.ScanDepth.OneLevel
+            : RestartManager.ScanDepth.CurrentOnly;
+        Settings.IgnoreGit = IgnoreGit.IsChecked == true;
+        Settings.Save();
+    }
+
+    private void ApplyLanguage()
+    {
+        Title = L.AppTitle;
+        LangToggle.Content = L.Language;
+
+        BrowseFileBtn.Content = L.BrowseFile;
+        BrowseFolderBtn.Content = L.BrowseFolder;
+        DetectBtn.Content = L.Detect;
+        StatusText.Text = L.DragHint;
+        ScanDepthLabel.Text = L.ScanDepthLabel;
+        ScanCurrent.Content = L.ScanCurrent;
+        ScanOneLevel.Content = L.ScanOneLevel;
+        ScanRecursive.Content = L.ScanRecursive;
+        IgnoreGit.Content = L.SkipGit;
+        BottomStatus.Text = L.Ready;
+
+        var view = ResultList.View as GridView;
+        if (view != null)
+        {
+            view.Columns[0].Header = L.ColPID;
+            view.Columns[1].Header = L.ColProcess;
+            view.Columns[2].Header = L.ColApp;
+            view.Columns[3].Header = L.ColLockedFile;
+            view.Columns[4].Header = L.ColAction;
+        }
+
+        foreach (var item in ResultList.Items)
+            if (item is RestartManager.LockInfo info)
+                RefreshRow(info);
+    }
+
+    private void RefreshRow(RestartManager.LockInfo info)
+    {
+        // Items remain the same data, just language in Kill button updates via template
+    }
+
+    private void LangToggle_Click(object sender, RoutedEventArgs e)
+    {
+        Settings.Lang = Settings.Lang == Settings.Language.Zh ? Settings.Language.En : Settings.Language.Zh;
+        Settings.Save();
+        ApplyLanguage();
     }
 
     private void BrowseFile_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Title = "选择要检测的文件", CheckFileExists = true };
+        var dialog = new Microsoft.Win32.OpenFileDialog { Title = L.SelectFileTitle, CheckFileExists = true };
         if (dialog.ShowDialog(this) == true)
         {
             FilePathBox.Text = dialog.FileName;
@@ -31,7 +95,7 @@ public partial class MainWindow : Window
     {
         using var dialog = new System.Windows.Forms.FolderBrowserDialog
         {
-            Description = "选择要检测的文件夹",
+            Description = L.SelectFolderTitle,
             UseDescriptionForTitle = true
         };
 
@@ -47,7 +111,7 @@ public partial class MainWindow : Window
         var path = FilePathBox.Text.Trim();
         if (string.IsNullOrEmpty(path))
         {
-            StatusText.Text = "请输入或选择文件/文件夹路径";
+            StatusText.Text = L.EnterPath;
             StatusText.Foreground = ColorDanger;
             return;
         }
@@ -82,10 +146,10 @@ public partial class MainWindow : Window
 
         if (!isFile && !isDir)
         {
-            StatusText.Text = "路径不存在: " + path;
+            StatusText.Text = L.PathNotExist + path;
             StatusText.Foreground = ColorDanger;
             ResultList.Items.Clear();
-            BottomStatus.Text = "路径不存在";
+            BottomStatus.Text = L.PathNotExistShort;
             return;
         }
 
@@ -93,16 +157,17 @@ public partial class MainWindow : Window
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
-        StatusText.Text = "正在检测...";
+        StatusText.Text = L.Detecting;
         StatusText.Foreground = ColorMuted;
         ResultList.Items.Clear();
-        BottomStatus.Text = "检测中...";
+        BottomStatus.Text = L.DetectingStatus;
 
         var scanDepth = ScanRecursive.IsChecked == true ? RestartManager.ScanDepth.Recursive
             : ScanOneLevel.IsChecked == true ? RestartManager.ScanDepth.OneLevel
             : RestartManager.ScanDepth.CurrentOnly;
-
         var ignoreGit = IgnoreGit.IsChecked == true;
+
+        SaveSettings();
 
         try
         {
@@ -115,27 +180,27 @@ public partial class MainWindow : Window
 
             if (locks.Count == 0)
             {
-                StatusText.Text = isDir ? "该文件夹未被任何进程占用" : "该文件未被任何进程占用";
+                StatusText.Text = isDir ? L.NotOccupiedFolder : L.NotOccupiedFile;
                 StatusText.Foreground = ColorSuccess;
-                BottomStatus.Text = "空闲，无占用";
+                BottomStatus.Text = L.Idle;
             }
             else
             {
-                var label = isDir ? "文件夹" : "文件";
-                StatusText.Text = $"发现 {locks.Count} 个进程占用该{label}";
+                var label = isDir ? L.Folder : L.File;
+                StatusText.Text = L.FoundLocks(locks.Count) + label;
                 StatusText.Foreground = ColorDanger;
                 foreach (var info in locks)
                     ResultList.Items.Add(info);
-                BottomStatus.Text = $"共 {locks.Count} 个进程占用";
+                BottomStatus.Text = L.TotalLocks(locks.Count);
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             if (token.IsCancellationRequested) return;
-            StatusText.Text = "检测出错: " + ex.Message;
+            StatusText.Text = L.DetectError(ex.Message);
             StatusText.Foreground = ColorDanger;
-            BottomStatus.Text = "检测失败";
+            BottomStatus.Text = L.DetectFailed;
         }
     }
 
@@ -148,7 +213,7 @@ public partial class MainWindow : Window
             var process = System.Diagnostics.Process.GetProcessById(pid);
             var name = process.ProcessName;
             process.Kill();
-            StatusText.Text = $"已结束进程 {name} (PID: {pid})";
+            StatusText.Text = L.KilledProcess(name, pid);
             StatusText.Foreground = ColorSuccess;
 
             var currentPath = FilePathBox.Text.Trim();
@@ -160,7 +225,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"结束进程失败: {ex.Message}";
+            StatusText.Text = L.KillFailed(ex.Message);
             StatusText.Foreground = ColorDanger;
         }
     }
