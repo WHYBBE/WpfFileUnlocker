@@ -1,5 +1,5 @@
-﻿using System.Windows;
-using System.Windows.Input;
+﻿using System.IO;
+using System.Windows;
 using System.Windows.Media;
 
 namespace FileUnlocker;
@@ -19,12 +19,7 @@ public partial class MainWindow : Window
 
     private void BrowseFile_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = "选择要检测的文件",
-            CheckFileExists = true
-        };
-
+        var dialog = new Microsoft.Win32.OpenFileDialog { Title = "选择要检测的文件", CheckFileExists = true };
         if (dialog.ShowDialog(this) == true)
         {
             FilePathBox.Text = dialog.FileName;
@@ -40,8 +35,7 @@ public partial class MainWindow : Window
             UseDescriptionForTitle = true
         };
 
-        var win32Owner = new Win32Owner(this);
-        if (dialog.ShowDialog(win32Owner) == System.Windows.Forms.DialogResult.OK)
+        if (dialog.ShowDialog(new Win32Owner(this)) == System.Windows.Forms.DialogResult.OK)
         {
             FilePathBox.Text = dialog.SelectedPath;
             DoDetect(dialog.SelectedPath);
@@ -83,8 +77,8 @@ public partial class MainWindow : Window
 
     private async void DoDetect(string path)
     {
-        var isDir = System.IO.Directory.Exists(path);
-        var isFile = System.IO.File.Exists(path);
+        var isDir = Directory.Exists(path);
+        var isFile = File.Exists(path);
 
         if (!isFile && !isDir)
         {
@@ -104,20 +98,18 @@ public partial class MainWindow : Window
         ResultList.Items.Clear();
         BottomStatus.Text = "检测中...";
 
-        var scanDepth = RestartManager.ScanDepth.Recursive;
-        if (ScanOneLevel.IsChecked == true) scanDepth = RestartManager.ScanDepth.OneLevel;
-        else if (ScanCurrent.IsChecked == true) scanDepth = RestartManager.ScanDepth.CurrentOnly;
+        var scanDepth = ScanRecursive.IsChecked == true ? RestartManager.ScanDepth.Recursive
+            : ScanOneLevel.IsChecked == true ? RestartManager.ScanDepth.OneLevel
+            : RestartManager.ScanDepth.CurrentOnly;
 
         var ignoreGit = IgnoreGit.IsChecked == true;
 
         try
         {
             var locks = await Task.Run(() =>
-            {
-                return isDir
+                isDir
                     ? RestartManager.GetLockingProcessesForFolder(path, scanDepth, ignoreGit)
-                    : RestartManager.GetLockingProcesses(path);
-            }, token);
+                    : RestartManager.GetLockingProcesses(path), token);
 
             if (token.IsCancellationRequested) return;
 

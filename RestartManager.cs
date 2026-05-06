@@ -11,7 +11,7 @@ internal static class RestartManager
     private const int ERROR_MORE_DATA = 234;
     private static readonly IntPtr INVALID_HANDLE_VALUE = new(-1);
 
-    #region Restart Manager
+    #region Win32 Interop
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct RM_UNIQUE_PROCESS
@@ -35,6 +35,13 @@ internal static class RestartManager
         public bool bRestartable;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IO_STATUS_BLOCK
+    {
+        public IntPtr Status;
+        public IntPtr Information;
+    }
+
     [DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode)]
     private static extern int RmStartSession(out int pSessionHandle, int dwSessionFlags, string strSessionKey);
 
@@ -47,25 +54,19 @@ internal static class RestartManager
     [DllImport("rstrtmgr.dll")]
     private static extern int RmGetList(int dwSessionHandle, out uint pnProcInfoNeeded, ref uint pnProcInfo, [In, Out] RM_PROCESS_INFO[] rgAffectedApps, ref uint lpdwRebootReasons);
 
-    #endregion
-
-    #region NtQueryInformationFile
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct IO_STATUS_BLOCK
-    {
-        public IntPtr Status;
-        public IntPtr Information;
-    }
-
     [DllImport("ntdll.dll")]
     private static extern int NtQueryInformationFile(IntPtr FileHandle, out IO_STATUS_BLOCK IoStatusBlock, IntPtr FileInformation, uint Length, int FileInformationClass);
-
-    private const int FileProcessIdsUsingFileInformation = 47;
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr CreateFileW(string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr hObject);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool QueryFullProcessImageName(IntPtr hProcess, int dwFlags, StringBuilder lpExeName, ref uint lpdwSize);
+
+    private const int FileProcessIdsUsingFileInformation = 47;
     private const uint FILE_READ_ATTRIBUTES = 0x80;
     private const uint FILE_SHARE_READ = 0x00000001;
     private const uint FILE_SHARE_WRITE = 0x00000002;
@@ -75,8 +76,12 @@ internal static class RestartManager
 
     #endregion
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool CloseHandle(IntPtr hObject);
+    public enum ScanDepth
+    {
+        CurrentOnly,
+        OneLevel,
+        Recursive
+    }
 
     public sealed class LockInfo
     {
@@ -101,60 +106,10 @@ internal static class RestartManager
         return BuildResults(pidFiles);
     }
 
-    public enum ScanDepth
-    {
-        CurrentOnly,
-        OneLevel,
-        Recursive
-    }
-
     public static List<LockInfo> GetLockingProcessesForFolder(string folderPath, ScanDepth scanDepth, bool ignoreGit)
     {
         var pidFiles = new ConcurrentDictionary<int, ConcurrentBag<string>>();
-
-        var allPaths = new List<string> { folderPath };
-
-        if (scanDepth == ScanDepth.CurrentOnly)
-        {
-            // 只检测文件夹自身
-        }
-        else if (scanDepth == ScanDepth.OneLevel)
-        {
-            // 当前目录下的文件和子目录（不进入子目录内部）
-            try
-            {
-                var files = Directory.EnumerateFiles(folderPath, "*", SearchOption.TopDirectoryOnly);
-                if (ignoreGit) files = files.Where(f => !IsUnderGit(f));
-                allPaths.AddRange(files.Take(2000));
-            }
-            catch { }
-
-            try
-            {
-                var dirs = Directory.EnumerateDirectories(folderPath, "*", SearchOption.TopDirectoryOnly);
-                if (ignoreGit) dirs = dirs.Where(d => !d.EndsWith(".git", StringComparison.OrdinalIgnoreCase));
-                allPaths.AddRange(dirs.Take(500));
-            }
-            catch { }
-        }
-        else
-        {
-            try
-            {
-                var dirs = Directory.EnumerateDirectories(folderPath, "*", SearchOption.AllDirectories);
-                if (ignoreGit) dirs = dirs.Where(d => !IsUnderGit(d));
-                allPaths.AddRange(dirs.Take(500));
-            }
-            catch { }
-
-            try
-            {
-                var files = Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories);
-                if (ignoreGit) files = files.Where(f => !IsUnderGit(f));
-                allPaths.AddRange(files.Take(2000));
-            }
-            catch { }
-        }
+        var allPaths = EnumeratePaths(folderPath, scanDepth, ignoreGit);
 
         Parallel.ForEach(allPaths, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
             path =>
@@ -176,6 +131,36 @@ internal static class RestartManager
         catch { }
 
         return BuildResults(pidFiles);
+    }
+
+    private static List<string> EnumeratePaths(string folderPath, ScanDepth scanDepth, bool ignoreGit)
+    {
+        var paths = new List<string> { folderPath };
+
+        if (scanDepth == ScanDepth.CurrentOnly)
+            return paths;
+
+        var searchOpt = scanDepth == ScanDepth.Recursive
+            ? SearchOption.AllDirectories
+            : SearchOption.TopDirectoryOnly;
+
+        try
+        {
+            var dirs = Directory.EnumerateDirectories(folderPath, "*", searchOpt);
+            if (ignoreGit) dirs = dirs.Where(d => !IsUnderGit(d));
+            paths.AddRange(dirs.Take(500));
+        }
+        catch { }
+
+        try
+        {
+            var files = Directory.EnumerateFiles(folderPath, "*", searchOpt);
+            if (ignoreGit) files = files.Where(f => !IsUnderGit(f));
+            paths.AddRange(files.Take(2000));
+        }
+        catch { }
+
+        return paths;
     }
 
     private static Dictionary<int, string> QueryRMSingle(string path)
@@ -217,17 +202,11 @@ internal static class RestartManager
     private static List<int> QueryFilePids(string path)
     {
         var result = new List<int>();
-
         uint flags = Directory.Exists(path) ? FILE_FLAG_BACKUP_SEMANTICS : 0;
 
-        IntPtr hFile = CreateFileW(
-            path,
-            FILE_READ_ATTRIBUTES,
+        IntPtr hFile = CreateFileW(path, FILE_READ_ATTRIBUTES,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            IntPtr.Zero,
-            OPEN_EXISTING,
-            flags,
-            IntPtr.Zero);
+            IntPtr.Zero, OPEN_EXISTING, flags, IntPtr.Zero);
 
         if (hFile == INVALID_HANDLE_VALUE) return result;
 
@@ -291,23 +270,18 @@ internal static class RestartManager
                 displayName = "";
             }
 
-            var effectiveName = !string.IsNullOrWhiteSpace(displayName) ? displayName : procName;
+            var isSelf = pid == selfPid;
+            var effectiveName = (!string.IsNullOrWhiteSpace(displayName) ? displayName : procName) + (isSelf ? " (当前进程)" : "");
 
             var lockedFile = files.Count <= 3
                 ? string.Join("\n", files)
                 : string.Join("\n", files.Take(3)) + $"\n...等{files.Count}个文件";
 
-            if (pid == selfPid)
-            {
-                effectiveName += " (当前进程)";
-                procName += " (当前进程)";
-            }
-
             results.Add(new LockInfo
             {
                 ProcessId = pid,
                 AppName = effectiveName,
-                ProcessName = procName,
+                ProcessName = procName + (isSelf ? " (当前进程)" : ""),
                 ExePath = exePath,
                 LockedFile = lockedFile
             });
@@ -319,49 +293,35 @@ internal static class RestartManager
     private static string GetFileDescription(string exePath)
     {
         if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath)) return "";
-        try
-        {
-            return FileVersionInfo.GetVersionInfo(exePath).FileDescription ?? "";
-        }
+        try { return FileVersionInfo.GetVersionInfo(exePath).FileDescription ?? ""; }
         catch { return ""; }
     }
 
     private static string TryGetProcessPath(Process proc)
     {
-        try
-        {
-            return proc.MainModule?.FileName ?? "";
-        }
+        try { return proc.MainModule?.FileName ?? ""; }
         catch
         {
             try
             {
                 var sb = new StringBuilder(1024);
                 uint size = (uint)sb.Capacity;
-                if (Imports.QueryFullProcessImageName(proc.Handle, 0, sb, ref size))
-                    return sb.ToString();
+                return QueryFullProcessImageName(proc.Handle, 0, sb, ref size) ? sb.ToString() : "";
             }
-            catch { }
-            return "";
+            catch { return ""; }
         }
     }
 
-        private static bool IsUnderGit(string path)
-        {
-            var span = path.AsSpan();
-            for (int i = 0; i < span.Length - 4; i++)
-            {
-                if ((span[i] == '\\' || span[i] == '/')
-                    && span.Slice(i + 1, 4).Equals(".git", StringComparison.OrdinalIgnoreCase)
-                    && (i + 5 >= span.Length || span[i + 5] == '\\' || span[i + 5] == '/'))
-                    return true;
-            }
-            return false;
-        }
-
-        private static class Imports
+    private static bool IsUnderGit(string path)
     {
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern bool QueryFullProcessImageName(IntPtr hProcess, int dwFlags, StringBuilder lpExeName, ref uint lpdwSize);
+        var span = path.AsSpan();
+        for (int i = 0; i < span.Length - 4; i++)
+        {
+            if ((span[i] == '\\' || span[i] == '/')
+                && span.Slice(i + 1, 4).Equals(".git", StringComparison.OrdinalIgnoreCase)
+                && (i + 5 >= span.Length || span[i + 5] == '\\' || span[i + 5] == '/'))
+                return true;
+        }
+        return false;
     }
 }

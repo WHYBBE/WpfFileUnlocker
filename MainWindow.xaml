@@ -6,7 +6,8 @@
         AllowDrop="True"
         Drop="Window_Drop" DragOver="Window_DragOver"
         Background="#f5f5f5" Foreground="#333333"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        Icon="Assets/icon.ico">
     <Window.Resources>
         <Style x:Key="HoverButton" TargetType="Button">
             <Setter Property="Background" Value="#e0e0e0"/>
@@ -90,11 +91,11 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="文件夹扫描深度：" FontSize="12" Foreground="#666666" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <RadioButton x:Name="ScanCurrent" Content="仅当前目录" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"
-                             Foreground="#333333" IsChecked="True" GroupName="ScanDepth"/>
+                             Foreground="#333333" GroupName="ScanDepth"/>
                 <RadioButton x:Name="ScanOneLevel" Content="含一层子目录" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"
                              Foreground="#333333" GroupName="ScanDepth"/>
                 <RadioButton x:Name="ScanRecursive" Content="递归所有子目录" FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0"
-                             Foreground="#333333" GroupName="ScanDepth"/>
+                             Foreground="#333333" IsChecked="True" GroupName="ScanDepth"/>
                 <Separator Style="{x:Null}" Width="1" Background="#e0e0e0" Margin="0,2"/>
                 <CheckBox x:Name="IgnoreGit" Content="跳过 .git 目录" FontSize="12" VerticalAlignment="Center"
                           Foreground="#333333" IsChecked="True" Margin="16,0,0,0"/>
