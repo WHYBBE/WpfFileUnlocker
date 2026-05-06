@@ -44,3 +44,7 @@ dotnet build -c Release
 ---
 
 [English README](README.md)
+
+## 致谢
+
+使用 [OpenCode](https://opencode.ai) / GLM 5.1 Vibe Coding 而成，感谢 Zhoumo API。

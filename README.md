@@ -46,3 +46,7 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 [中文版 README](README.zh-CN.md)
+
+## Acknowledgments
+
+Built with [OpenCode](https://opencode.ai) / GLM 5.1 Vibe Coding, powered by Zhoumo API.
