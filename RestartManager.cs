@@ -90,14 +90,12 @@ internal static class RestartManager
     public static List<LockInfo> GetLockingProcesses(string path)
     {
         var pidFiles = new ConcurrentDictionary<int, ConcurrentBag<string>>();
-        int selfPid = Environment.ProcessId;
 
         foreach (var pid in QueryFilePids(path))
-            if (pid != selfPid)
-                pidFiles.GetOrAdd(pid, _ => []).Add(path);
+            pidFiles.GetOrAdd(pid, _ => []).Add(path);
 
         foreach (var kv in QueryRMSingle(path))
-            if (kv.Key != selfPid && !pidFiles.ContainsKey(kv.Key))
+            if (!pidFiles.ContainsKey(kv.Key))
                 pidFiles.GetOrAdd(kv.Key, _ => []).Add(path);
 
         return BuildResults(pidFiles);
@@ -113,7 +111,6 @@ internal static class RestartManager
     public static List<LockInfo> GetLockingProcessesForFolder(string folderPath, ScanDepth scanDepth, bool ignoreGit)
     {
         var pidFiles = new ConcurrentDictionary<int, ConcurrentBag<string>>();
-        int selfPid = Environment.ProcessId;
 
         var allPaths = new List<string> { folderPath };
 
@@ -165,8 +162,7 @@ internal static class RestartManager
                 try
                 {
                     foreach (var pid in QueryFilePids(path))
-                        if (pid != selfPid)
-                            pidFiles.GetOrAdd(pid, _ => []).Add(path);
+                        pidFiles.GetOrAdd(pid, _ => []).Add(path);
                 }
                 catch { }
             });
@@ -174,7 +170,7 @@ internal static class RestartManager
         try
         {
             foreach (var kv in QueryRMSingle(folderPath))
-                if (kv.Key != selfPid && !pidFiles.ContainsKey(kv.Key))
+                if (!pidFiles.ContainsKey(kv.Key))
                     pidFiles.GetOrAdd(kv.Key, _ => []).Add(folderPath);
         }
         catch { }
@@ -273,6 +269,7 @@ internal static class RestartManager
     private static List<LockInfo> BuildResults(ConcurrentDictionary<int, ConcurrentBag<string>> pidFiles)
     {
         var results = new List<LockInfo>();
+        int selfPid = Environment.ProcessId;
 
         foreach (var kv in pidFiles)
         {
@@ -299,6 +296,12 @@ internal static class RestartManager
             var lockedFile = files.Count <= 3
                 ? string.Join("\n", files)
                 : string.Join("\n", files.Take(3)) + $"\n...等{files.Count}个文件";
+
+            if (pid == selfPid)
+            {
+                effectiveName += " (当前进程)";
+                procName += " (当前进程)";
+            }
 
             results.Add(new LockInfo
             {
