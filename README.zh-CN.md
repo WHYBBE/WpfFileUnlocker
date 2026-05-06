@@ -4,6 +4,8 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+![FileUnlocker](docs/preview-cn.png)
+
 ## 功能
 
 - **双引擎检测** — Restart Manager API + `NtQueryInformationFile`，结果准确

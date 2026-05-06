@@ -18,7 +18,7 @@ A lightweight Windows utility to detect which processes are locking a file or fo
 
 ## Screenshot
 
-![FileUnlocker](https://via.placeholder.com/720x540?text=FileUnlocker+Screenshot)
+![FileUnlocker](docs/preview-en.png)
 
 ## Download
 
