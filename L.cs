@@ -44,4 +44,15 @@ internal static class L
     public static string ColLockedFile => IsEn ? "Locked File" : "占用文件";
     public static string ColAction => IsEn ? "Action" : "操作";
     public static string Kill => IsEn ? "Kill" : "结束";
+
+    public static string SettingsTitle => IsEn ? "Settings" : "设置";
+    public static string SettingsLangLabel => IsEn ? "Language" : "语言";
+    public static string LangZh => "中文";
+    public static string LangEn => "English";
+    public static string SettingsThemeLabel => IsEn ? "Theme" : "主题";
+    public static string ThemeSystem => IsEn ? "Follow system" : "跟随系统";
+    public static string ThemeLight => IsEn ? "Light" : "浅色";
+    public static string ThemeDark => IsEn ? "Dark" : "深色";
+    public static string Save => IsEn ? "Save" : "保存";
+    public static string Cancel => IsEn ? "Cancel" : "取消";
 }

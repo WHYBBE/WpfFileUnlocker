@@ -50,15 +50,38 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="LangButton"
+        <Style x:Key="IconButton"
                BasedOn="{StaticResource {x:Type Button}}"
                TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="6" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{StaticResource ControlCornerRadius}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="FluentListViewItem"
                BasedOn="{StaticResource {x:Type ListViewItem}}"
@@ -101,7 +124,7 @@
         <Border Grid.Row="0"
                 Margin="16,12,16,0"
                 Style="{StaticResource CardBorder}">
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
                 <Grid.Resources>
                     <Style BasedOn="{StaticResource {x:Type Button}}" TargetType="Button">
                         <Setter Property="Padding" Value="12,6" />
@@ -133,6 +156,16 @@
                         Content="检测"
                         FontWeight="SemiBold"
                         Style="{DynamicResource AccentButtonStyle}" />
+                <Button x:Name="SettingsBtn"
+                        Grid.Column="4"
+                        Margin="8,0,0,0"
+                        Click="SettingsBtn_Click"
+                        Style="{StaticResource IconButton}"
+                        ToolTip="设置">
+                    <TextBlock FontFamily="{StaticResource SymbolThemeFontFamily}"
+                               FontSize="16"
+                               Text="&#xE713;" />
+                </Button>
             </Grid>
         </Border>
 
@@ -297,7 +330,7 @@
         </Border>
 
         <Grid Grid.Row="4"
-              Height="24"
+              Height="28"
               Margin="16,8,16,8">
             <TextBlock x:Name="BottomStatus"
                        HorizontalAlignment="Left"
@@ -305,12 +338,6 @@
                        FontSize="12"
                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                        Text="就绪" />
-            <Button x:Name="LangToggle"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Click="LangToggle_Click"
-                    Content="语言"
-                    Style="{StaticResource LangButton}" />
         </Grid>
     </Grid>
 </Window>

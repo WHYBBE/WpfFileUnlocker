@@ -15,7 +15,6 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        Settings.Load();
         InitializeComponent();
         ApplySettings();
         ApplyLanguage();
@@ -41,7 +40,7 @@ public partial class MainWindow : Window
     private void ApplyLanguage()
     {
         Title = L.AppTitle;
-        LangToggle.Content = L.Language;
+        SettingsBtn.ToolTip = L.SettingsTitle;
 
         BrowseFileBtn.Content = L.BrowseFile;
         BrowseFolderBtn.Content = L.BrowseFolder;
@@ -74,11 +73,12 @@ public partial class MainWindow : Window
         // Items remain the same data, just language in Kill button updates via template
     }
 
-    private void LangToggle_Click(object sender, RoutedEventArgs e)
+    private void SettingsBtn_Click(object sender, RoutedEventArgs e)
     {
-        Settings.Lang = Settings.Lang == Settings.Language.Zh ? Settings.Language.En : Settings.Language.Zh;
-        Settings.Save();
-        ApplyLanguage();
+        var win = new SettingsWindow(this);
+        win.ShowDialog();
+        if (win.LanguageChanged)
+            ApplyLanguage();
     }
 
     private void BrowseFile_Click(object sender, RoutedEventArgs e)

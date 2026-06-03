@@ -6,8 +6,10 @@ namespace FileUnlocker;
 internal static class Settings
 {
     public enum Language { Zh, En }
+    public enum AppTheme { System, Light, Dark }
 
     public static Language Lang { get; set; } = Language.Zh;
+    public static AppTheme Theme { get; set; } = AppTheme.System;
     public static RestartManager.ScanDepth ScanDepth { get; set; } = RestartManager.ScanDepth.Recursive;
     public static bool IgnoreGit { get; set; } = true;
 
@@ -26,6 +28,8 @@ internal static class Settings
 
             if (root.TryGetProperty("lang", out var lang))
                 Lang = lang.GetString() == "en" ? Language.En : Language.Zh;
+            if (root.TryGetProperty("theme", out var theme))
+                Theme = theme.GetString() switch { "light" => AppTheme.Light, "dark" => AppTheme.Dark, _ => AppTheme.System };
             if (root.TryGetProperty("scanDepth", out var sd))
                 ScanDepth = sd.GetInt32() switch { 1 => RestartManager.ScanDepth.OneLevel, 2 => RestartManager.ScanDepth.Recursive, _ => RestartManager.ScanDepth.CurrentOnly };
             if (root.TryGetProperty("ignoreGit", out var ig))
@@ -40,7 +44,8 @@ internal static class Settings
         {
             var dir = System.IO.Path.GetDirectoryName(Path)!;
             Directory.CreateDirectory(dir);
-            var json = $"{{\"lang\":\"{(Lang == Language.En ? "en" : "zh")}\",\"scanDepth\":{(int)ScanDepth},\"ignoreGit\":{IgnoreGit.ToString().ToLower()}}}";
+            var themeStr = Theme switch { AppTheme.Light => "light", AppTheme.Dark => "dark", _ => "system" };
+            var json = $"{{\"lang\":\"{(Lang == Language.En ? "en" : "zh")}\",\"theme\":\"{themeStr}\",\"scanDepth\":{(int)ScanDepth},\"ignoreGit\":{IgnoreGit.ToString().ToLower()}}}";
             File.WriteAllText(Path, json);
         }
         catch { }
