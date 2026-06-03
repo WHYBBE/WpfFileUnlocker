@@ -1,11 +1,18 @@
 # FileUnlocker
 
-A lightweight Windows utility to detect which processes are locking a file or folder, built with .NET 10 / WPF.
+A lightweight Windows utility to detect which processes are locking a file or folder, built with .NET 10 / WPF & Fluent theme.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+## Screenshots
+
+| Light | Dark |
+|:---:|:---:|
+| ![Light](docs/preview-en-light.png) | ![Dark](docs/preview-en-dark.png) |
+
 ## Features
 
+- **Fluent theme** — Native Windows 11 Fluent design, supports Light / Dark / Follow system
 - **Dual-engine detection** — Restart Manager API + `NtQueryInformationFile` for accurate results
 - **Folder support** — Detect locks on folders with configurable scan depth (current only / one level / recursive)
 - **File tracking** — Shows exactly which file is locked by which process
@@ -13,12 +20,9 @@ A lightweight Windows utility to detect which processes are locking a file or fo
 - **Async & parallel** — Non-blocking UI, multi-core parallel scanning
 - **Skip .git** — Option to exclude .git directories from folder scans
 - **Self-process detection** — Even detects if the current process is locking the target
-- **i18n** — English / 中文 switch, persisted across sessions
-- **Persistent settings** — Language, scan depth, .git preference saved to `%APPDATA%\FileUnlocker\settings.json`
-
-## Screenshot
-
-![FileUnlocker](docs/preview-en.png)
+- **i18n** — English / 中文, persisted across sessions
+- **Settings window** — Language & theme switching with Save / Cancel
+- **Persistent settings** — Language, theme, scan depth, .git preference saved to `%APPDATA%\FileUnlocker\settings.json`
 
 ## Download
 
@@ -38,6 +42,7 @@ The output is in `bin/Release/net10.0-windows/`.
 2. Click **Detect**
 3. View locking processes — hover the ℹ icon to see EXE path
 4. Click **Kill** to terminate a locking process
+5. Click ⚙ to open Settings — change language or theme
 
 ## License
 
