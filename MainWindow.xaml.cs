@@ -7,9 +7,9 @@ namespace FileUnlocker;
 
 public partial class MainWindow : Window
 {
-    private static readonly SolidColorBrush ColorMuted = new(System.Windows.Media.Color.FromRgb(0x88, 0x88, 0x88));
-    private static readonly SolidColorBrush ColorSuccess = new(System.Windows.Media.Color.FromRgb(0x10, 0x89, 0x3e));
-    private static readonly SolidColorBrush ColorDanger = new(System.Windows.Media.Color.FromRgb(0xe8, 0x11, 0x23));
+    private SolidColorBrush ColorMuted => (SolidColorBrush)FindResource("TextFillColorSecondaryBrush");
+    private SolidColorBrush ColorSuccess => (SolidColorBrush)FindResource("SystemFillColorSuccessBrush");
+    private SolidColorBrush ColorDanger => (SolidColorBrush)FindResource("SystemFillColorCriticalBrush");
 
     private CancellationTokenSource? _cts;
 
