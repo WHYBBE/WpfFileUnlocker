@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace FileUnlocker;
 
@@ -12,6 +13,7 @@ public partial class MainWindow : Window
     private SolidColorBrush ColorDanger => (SolidColorBrush)FindResource("SystemFillColorCriticalBrush");
 
     private CancellationTokenSource? _cts;
+    private DispatcherTimer? _loadingTimer;
 
     public MainWindow()
     {
@@ -45,12 +47,15 @@ public partial class MainWindow : Window
         BrowseFileBtn.Content = L.BrowseFile;
         BrowseFolderBtn.Content = L.BrowseFolder;
         DetectBtn.Content = L.Detect;
-        StatusText.Text = L.DragHint;
         ScanDepthLabel.Text = L.ScanDepthLabel;
         ScanCurrent.Content = L.ScanCurrent;
         ScanOneLevel.Content = L.ScanOneLevel;
         ScanRecursive.Content = L.ScanRecursive;
         IgnoreGit.Content = L.SkipGit;
+
+        if (EmptyPanel.Visibility == Visibility.Visible && LoadingSpinner.Visibility != Visibility.Visible)
+            EmptyText.Text = L.DragHint;
+
         BottomStatus.Text = L.Ready;
 
         var view = ResultList.View as GridView;
@@ -62,15 +67,53 @@ public partial class MainWindow : Window
             view.Columns[3].Header = L.ColLockedFile;
             view.Columns[4].Header = L.ColAction;
         }
-
-        foreach (var item in ResultList.Items)
-            if (item is RestartManager.LockInfo info)
-                RefreshRow(info);
     }
 
-    private void RefreshRow(RestartManager.LockInfo info)
+    private enum StatusType { Ready, Muted, Success, Danger }
+
+    private void SetStatus(string text, StatusType type)
     {
-        // Items remain the same data, just language in Kill button updates via template
+        BottomStatus.Text = text;
+        BottomStatus.Foreground = type switch
+        {
+            StatusType.Success => ColorSuccess,
+            StatusType.Danger => ColorDanger,
+            _ => ColorMuted
+        };
+    }
+
+    private void ShowEmptyState(string icon, string text)
+    {
+        EmptyIcon.Text = icon;
+        EmptyText.Text = text;
+        EmptyIcon.Visibility = Visibility.Visible;
+        EmptyText.Visibility = Visibility.Visible;
+        LoadingSpinner.Visibility = Visibility.Collapsed;
+        LoadingText.Visibility = Visibility.Collapsed;
+        EmptyPanel.Visibility = Visibility.Visible;
+    }
+
+    private void ShowLoadingState()
+    {
+        _loadingTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _loadingTimer.Tick += (_, _) =>
+        {
+            _loadingTimer.Stop();
+            EmptyIcon.Visibility = Visibility.Collapsed;
+            EmptyText.Visibility = Visibility.Collapsed;
+            LoadingSpinner.Visibility = Visibility.Visible;
+            LoadingText.Text = L.Detecting;
+            LoadingText.Visibility = Visibility.Visible;
+            EmptyPanel.Visibility = Visibility.Visible;
+        };
+        _loadingTimer.Start();
+    }
+
+    private void HideLoading()
+    {
+        _loadingTimer?.Stop();
+        _loadingTimer = null;
+        EmptyPanel.Visibility = Visibility.Collapsed;
     }
 
     private void SettingsBtn_Click(object sender, RoutedEventArgs e)
@@ -111,8 +154,7 @@ public partial class MainWindow : Window
         var path = FilePathBox.Text.Trim();
         if (string.IsNullOrEmpty(path))
         {
-            StatusText.Text = L.EnterPath;
-            StatusText.Foreground = ColorDanger;
+            SetStatus(L.EnterPath, StatusType.Danger);
             return;
         }
         DoDetect(path);
@@ -146,10 +188,9 @@ public partial class MainWindow : Window
 
         if (!isFile && !isDir)
         {
-            StatusText.Text = L.PathNotExist + path;
-            StatusText.Foreground = ColorDanger;
+            SetStatus(L.PathNotExist + path, StatusType.Danger);
             ResultList.Items.Clear();
-            BottomStatus.Text = L.PathNotExistShort;
+            ShowEmptyState("&#xE783;", L.PathNotExist);
             return;
         }
 
@@ -157,10 +198,9 @@ public partial class MainWindow : Window
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
-        StatusText.Text = L.Detecting;
-        StatusText.Foreground = ColorMuted;
         ResultList.Items.Clear();
-        BottomStatus.Text = L.DetectingStatus;
+        SetStatus(L.Detecting, StatusType.Muted);
+        ShowLoadingState();
 
         var scanDepth = ScanRecursive.IsChecked == true ? RestartManager.ScanDepth.Recursive
             : ScanOneLevel.IsChecked == true ? RestartManager.ScanDepth.OneLevel
@@ -178,29 +218,28 @@ public partial class MainWindow : Window
 
             if (token.IsCancellationRequested) return;
 
+            HideLoading();
+
             if (locks.Count == 0)
             {
-                StatusText.Text = isDir ? L.NotOccupiedFolder : L.NotOccupiedFile;
-                StatusText.Foreground = ColorSuccess;
-                BottomStatus.Text = L.Idle;
+                SetStatus(isDir ? L.NotOccupiedFolder : L.NotOccupiedFile, StatusType.Success);
+                ShowEmptyState("&#xE73E;", isDir ? L.NotOccupiedFolder : L.NotOccupiedFile);
             }
             else
             {
                 var label = isDir ? L.Folder : L.File;
-                StatusText.Text = L.FoundLocks(locks.Count) + label;
-                StatusText.Foreground = ColorDanger;
+                SetStatus(L.FoundLocks(locks.Count) + label, StatusType.Danger);
                 foreach (var info in locks)
                     ResultList.Items.Add(info);
-                BottomStatus.Text = L.TotalLocks(locks.Count);
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             if (token.IsCancellationRequested) return;
-            StatusText.Text = L.DetectError(ex.Message);
-            StatusText.Foreground = ColorDanger;
-            BottomStatus.Text = L.DetectFailed;
+            HideLoading();
+            SetStatus(L.DetectError(ex.Message), StatusType.Danger);
+            ShowEmptyState("&#xE783;", L.DetectFailed);
         }
     }
 
@@ -213,8 +252,7 @@ public partial class MainWindow : Window
             var process = System.Diagnostics.Process.GetProcessById(pid);
             var name = process.ProcessName;
             process.Kill();
-            StatusText.Text = L.KilledProcess(name, pid);
-            StatusText.Foreground = ColorSuccess;
+            SetStatus(L.KilledProcess(name, pid), StatusType.Success);
 
             var currentPath = FilePathBox.Text.Trim();
             if (!string.IsNullOrEmpty(currentPath))
@@ -225,8 +263,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = L.KillFailed(ex.Message);
-            StatusText.Foreground = ColorDanger;
+            SetStatus(L.KillFailed(ex.Message), StatusType.Danger);
         }
     }
 

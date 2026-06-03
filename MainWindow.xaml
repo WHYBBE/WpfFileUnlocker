@@ -117,9 +117,10 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
 
-    <Grid Margin="0" RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid Margin="0" RowDefinitions="Auto,Auto,*,Auto">
 
         <Border Grid.Row="0"
                 Margin="16,12,16,0"
@@ -169,21 +170,7 @@
             </Grid>
         </Border>
 
-        <Border x:Name="DropZone"
-                Grid.Row="1"
-                Margin="16,8,16,0"
-                Padding="20,10"
-                BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}"
-                Style="{StaticResource CardBorder}">
-            <TextBlock x:Name="StatusText"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       FontSize="13"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                       Text="拖拽文件或文件夹到此处，或输入路径后点击检测" />
-        </Border>
-
-        <Border Grid.Row="2"
+        <Border Grid.Row="1"
                 Margin="16,8,16,0"
                 Padding="10,6"
                 Style="{StaticResource CardBorder}">
@@ -214,130 +201,181 @@
                            Background="{DynamicResource ControlStrokeColorSecondaryBrush}"
                            Style="{x:Null}" />
                 <CheckBox x:Name="IgnoreGit"
-                          Margin="16,0,0,0"
-                          Content="跳过 .git 目录"
-                          IsChecked="True" />
+                           Margin="16,0,0,0"
+                           Content="跳过 .git 目录"
+                           IsChecked="True" />
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="3"
+        <Border Grid.Row="2"
                 Margin="16,8,16,0"
                 Padding="0"
                 ClipToBounds="True"
                 Style="{StaticResource CardBorder}">
-            <ListView x:Name="ResultList"
-                      Margin="0"
-                      Padding="0"
-                      Background="Transparent"
-                      BorderThickness="0"
-                      FontSize="13"
-                      ItemContainerStyle="{StaticResource FluentListViewItem}"
-                      SelectionMode="Single">
-                <ListView.View>
-                    <GridView>
-                        <GridViewColumn Width="80" Header="PID">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border Padding="8,2"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Center"
-                                            Background="{DynamicResource AccentFillColorDisabledBrush}"
-                                            CornerRadius="{StaticResource ControlCornerRadius}">
-                                        <TextBlock VerticalAlignment="Center"
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
-                                                   Text="{Binding ProcessId}" />
-                                    </Border>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Width="160" Header="进程名">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                        <Border Width="20"
-                                                Height="20"
-                                                Margin="0,0,6,0"
+            <Grid>
+                <ListView x:Name="ResultList"
+                          Margin="0"
+                          Padding="0"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          FontSize="13"
+                          ItemContainerStyle="{StaticResource FluentListViewItem}"
+                          SelectionMode="Single">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Width="80" Header="PID">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="8,2"
+                                                HorizontalAlignment="Left"
                                                 VerticalAlignment="Center"
-                                                Background="#1a10893e"
+                                                Background="{DynamicResource AccentFillColorDisabledBrush}"
                                                 CornerRadius="{StaticResource ControlCornerRadius}">
-                                            <TextBlock HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"
-                                                       FontFamily="{StaticResource SymbolThemeFontFamily}"
-                                                       FontSize="11"
-                                                       Foreground="#10893e"
-                                                       Text="&#xE9D9;" />
+                                            <TextBlock VerticalAlignment="Center"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                                       Text="{Binding ProcessId}" />
                                         </Border>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="160" Header="进程名">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                            <Border Width="20"
+                                                    Height="20"
+                                                    Margin="0,0,6,0"
+                                                    VerticalAlignment="Center"
+                                                    Background="#1a10893e"
+                                                    CornerRadius="{StaticResource ControlCornerRadius}">
+                                                <TextBlock HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                                           FontSize="11"
+                                                           Foreground="#10893e"
+                                                           Text="&#xE9D9;" />
+                                            </Border>
+                                            <TextBlock VerticalAlignment="Center"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Text="{Binding ProcessName}" />
+                                            <Border Width="16"
+                                                    Height="16"
+                                                    Margin="4,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    Background="{DynamicResource ControlFillColorSecondaryBrush}"
+                                                    CornerRadius="8"
+                                                    Cursor="Help"
+                                                    ToolTip="{Binding ExePath}">
+                                                <TextBlock HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                                           FontSize="9"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                           Text="&#xE946;" />
+                                            </Border>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="150" Header="应用名">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
                                         <TextBlock VerticalAlignment="Center"
                                                    FontSize="13"
-                                                   FontWeight="SemiBold"
-                                                   Text="{Binding ProcessName}" />
-                                        <Border Width="16"
-                                                Height="16"
-                                                Margin="4,0,0,0"
-                                                VerticalAlignment="Center"
-                                                Background="{DynamicResource ControlFillColorSecondaryBrush}"
-                                                CornerRadius="8"
-                                                Cursor="Help"
-                                                ToolTip="{Binding ExePath}">
-                                            <TextBlock HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center"
-                                                       FontFamily="{StaticResource SymbolThemeFontFamily}"
-                                                       FontSize="9"
-                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                                       Text="&#xE946;" />
-                                        </Border>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Width="150" Header="应用名">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock VerticalAlignment="Center"
-                                               FontSize="13"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                               Text="{Binding AppName}" />
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Width="200" Header="占用文件">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock VerticalAlignment="Center"
-                                               FontSize="13"
-                                               Foreground="{DynamicResource SystemFillColorCautionBrush}"
-                                               Text="{Binding LockedFile}"
-                                               TextTrimming="CharacterEllipsis"
-                                               ToolTip="{Binding LockedFile}" />
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                        <GridViewColumn Width="80" Header="操作">
-                            <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Button Click="KillProcess_Click"
-                                            Content="结束"
-                                            Style="{StaticResource DangerButton}"
-                                            Tag="{Binding ProcessId}" />
-                                </DataTemplate>
-                            </GridViewColumn.CellTemplate>
-                        </GridViewColumn>
-                    </GridView>
-                </ListView.View>
-            </ListView>
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   Text="{Binding AppName}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="200" Header="占用文件">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock VerticalAlignment="Center"
+                                                   FontSize="13"
+                                                   Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                                   Text="{Binding LockedFile}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding LockedFile}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Width="80" Header="操作">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Click="KillProcess_Click"
+                                                Content="结束"
+                                                Style="{StaticResource DangerButton}"
+                                                Tag="{Binding ProcessId}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+
+                <StackPanel x:Name="EmptyPanel"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Visibility="Visible">
+                    <TextBlock x:Name="EmptyIcon"
+                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                               FontSize="40"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               HorizontalAlignment="Center"
+                               Text="&#xE89F;" />
+                    <TextBlock x:Name="EmptyText"
+                               FontSize="14"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,8,0,0"
+                               Text="拖拽文件或文件夹到此处，或输入路径后点击检测" />
+                    <TextBlock x:Name="LoadingText"
+                               FontSize="14"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               Visibility="Collapsed"
+                               Text="正在检测...">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform x:Name="LoadingDotTransform" />
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                    <TextBlock x:Name="LoadingSpinner"
+                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                               FontSize="32"
+                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                               HorizontalAlignment="Center"
+                               Visibility="Collapsed"
+                               Margin="0,0,0,8"
+                               Text="&#xE712;">
+                        <TextBlock.RenderTransform>
+                            <RotateTransform x:Name="LoadingRotation" CenterX="16" CenterY="16" />
+                        </TextBlock.RenderTransform>
+                        <TextBlock.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="LoadingRotation"
+                                                         Storyboard.TargetProperty="Angle"
+                                                         From="0" To="360" Duration="0:0:1.2" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </TextBlock.Triggers>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <Grid Grid.Row="4"
-              Height="28"
-              Margin="16,8,16,8">
-            <TextBlock x:Name="BottomStatus"
-                       HorizontalAlignment="Left"
-                       VerticalAlignment="Center"
-                       FontSize="12"
-                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="就绪" />
-        </Grid>
+        <TextBlock x:Name="BottomStatus"
+                   Grid.Row="3"
+                   Height="24"
+                   Margin="16,6,16,8"
+                   VerticalAlignment="Center"
+                   FontSize="12"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                   Text="就绪" />
     </Grid>
 </Window>
