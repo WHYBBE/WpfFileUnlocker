@@ -1,7 +1,7 @@
 <Window x:Class="FileUnlocker.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="设置"
+        Title=""
         Width="420"
         Height="300"
         ResizeMode="NoResize"
@@ -32,21 +32,21 @@
     <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto">
         <Border Grid.Row="0" Style="{StaticResource CardBorder}" Margin="0,0,0,12">
             <Grid ColumnDefinitions="Auto,*">
-                <TextBlock Grid.Column="0" x:Name="LangLabel" Text="语言" Style="{StaticResource SettingLabel}" />
+                <TextBlock Grid.Column="0" x:Name="LangLabel" Text="" Style="{StaticResource SettingLabel}" />
                 <ComboBox Grid.Column="1" x:Name="LangCombo" Style="{StaticResource SettingComboBox}" HorizontalAlignment="Right" />
             </Grid>
         </Border>
 
         <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,0,0,12">
             <Grid ColumnDefinitions="Auto,*">
-                <TextBlock Grid.Column="0" x:Name="ThemeLabel" Text="主题" Style="{StaticResource SettingLabel}" />
+                <TextBlock Grid.Column="0" x:Name="ThemeLabel" Text="" Style="{StaticResource SettingLabel}" />
                 <ComboBox Grid.Column="1" x:Name="ThemeCombo" Style="{StaticResource SettingComboBox}" HorizontalAlignment="Right" />
             </Grid>
         </Border>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-            <Button x:Name="CancelBtn" Content="取消" Padding="20,6" FontSize="13" MinWidth="80" Margin="0,0,8,0" Click="CancelBtn_Click" />
-            <Button x:Name="SaveBtn" Content="保存" Style="{DynamicResource AccentButtonStyle}" Padding="20,6" FontSize="13" MinWidth="80" Click="SaveBtn_Click" />
+            <Button x:Name="CancelBtn" Content="" Padding="20,6" FontSize="13" MinWidth="80" Margin="0,0,8,0" Click="CancelBtn_Click" />
+            <Button x:Name="SaveBtn" Content="" Style="{DynamicResource AccentButtonStyle}" Padding="20,6" FontSize="13" MinWidth="80" Click="SaveBtn_Click" />
         </StackPanel>
     </Grid>
 </Window>

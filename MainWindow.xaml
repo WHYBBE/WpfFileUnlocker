@@ -1,7 +1,7 @@
 ﻿<Window x:Class="FileUnlocker.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="FileUnlocker - 文件占用检测"
+        Title=""
         Width="780"
         Height="540"
         AllowDrop="True"
@@ -62,11 +62,11 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd"
+                                Padding="{TemplateBinding Padding}"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{DynamicResource ControlStrokeColorSecondaryBrush}"
                                 BorderThickness="1"
                                 CornerRadius="{StaticResource ControlCornerRadius}"
-                                Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
@@ -144,17 +144,17 @@
                         Grid.Column="1"
                         Margin="8,0,0,0"
                         Click="BrowseFile_Click"
-                        Content="选择文件" />
+                        Content="" />
                 <Button x:Name="BrowseFolderBtn"
                         Grid.Column="2"
                         Margin="8,0,0,0"
                         Click="BrowseFolder_Click"
-                        Content="选择文件夹" />
+                        Content="" />
                 <Button x:Name="DetectBtn"
                         Grid.Column="3"
                         Margin="8,0,0,0"
                         Click="Detect_Click"
-                        Content="检测"
+                        Content=""
                         FontWeight="SemiBold"
                         Style="{DynamicResource AccentButtonStyle}" />
                 <Button x:Name="SettingsBtn"
@@ -162,7 +162,7 @@
                         Margin="8,0,0,0"
                         Click="SettingsBtn_Click"
                         Style="{StaticResource IconButton}"
-                        ToolTip="设置">
+                        ToolTip="">
                     <TextBlock FontFamily="{StaticResource SymbolThemeFontFamily}"
                                FontSize="16"
                                Text="&#xE713;" />
@@ -182,18 +182,18 @@
                            VerticalAlignment="Center"
                            FontSize="13"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                           Text="文件夹扫描深度：" />
+                           Text="" />
                 <RadioButton x:Name="ScanCurrent"
                              Margin="0,0,12,0"
-                             Content="仅当前目录"
+                             Content=""
                              GroupName="ScanDepth" />
                 <RadioButton x:Name="ScanOneLevel"
                              Margin="0,0,12,0"
-                             Content="含一层子目录"
+                             Content=""
                              GroupName="ScanDepth" />
                 <RadioButton x:Name="ScanRecursive"
                              Margin="0,0,16,0"
-                             Content="递归所有子目录"
+                             Content=""
                              GroupName="ScanDepth"
                              IsChecked="True" />
                 <Separator Width="1"
@@ -201,9 +201,9 @@
                            Background="{DynamicResource ControlStrokeColorSecondaryBrush}"
                            Style="{x:Null}" />
                 <CheckBox x:Name="IgnoreGit"
-                           Margin="16,0,0,0"
-                           Content="跳过 .git 目录"
-                           IsChecked="True" />
+                          Margin="16,0,0,0"
+                          Content=""
+                          IsChecked="True" />
             </StackPanel>
         </Border>
 
@@ -240,7 +240,7 @@
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Width="160" Header="进程名">
+                            <GridViewColumn Width="160" Header="">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -280,7 +280,7 @@
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Width="150" Header="应用名">
+                            <GridViewColumn Width="150" Header="">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock VerticalAlignment="Center"
@@ -290,7 +290,7 @@
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Width="200" Header="占用文件">
+                            <GridViewColumn Width="200" Header="">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock VerticalAlignment="Center"
@@ -302,11 +302,11 @@
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
-                            <GridViewColumn Width="80" Header="操作">
+                            <GridViewColumn Width="80" Header="">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Click="KillProcess_Click"
-                                                Content="结束"
+                                                Content=""
                                                 Style="{StaticResource DangerButton}"
                                                 Tag="{Binding ProcessId}" />
                                     </DataTemplate>
@@ -321,35 +321,35 @@
                             VerticalAlignment="Center"
                             Visibility="Visible">
                     <TextBlock x:Name="EmptyIcon"
+                               HorizontalAlignment="Center"
                                FontFamily="{StaticResource SymbolThemeFontFamily}"
                                FontSize="40"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                               HorizontalAlignment="Center"
                                Text="&#xE89F;" />
                     <TextBlock x:Name="EmptyText"
-                               FontSize="14"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               HorizontalAlignment="Center"
                                Margin="0,8,0,0"
-                               Text="拖拽文件或文件夹到此处，或输入路径后点击检测" />
-                    <TextBlock x:Name="LoadingText"
+                               HorizontalAlignment="Center"
                                FontSize="14"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="" />
+                    <TextBlock x:Name="LoadingText"
                                HorizontalAlignment="Center"
-                               Visibility="Collapsed"
-                               Text="正在检测...">
+                               FontSize="14"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text=""
+                               Visibility="Collapsed">
                         <TextBlock.RenderTransform>
                             <TranslateTransform x:Name="LoadingDotTransform" />
                         </TextBlock.RenderTransform>
                     </TextBlock>
                     <TextBlock x:Name="LoadingSpinner"
+                               Margin="0,0,0,8"
+                               HorizontalAlignment="Center"
                                FontFamily="{StaticResource SymbolThemeFontFamily}"
                                FontSize="32"
                                Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
-                               HorizontalAlignment="Center"
-                               Visibility="Collapsed"
-                               Margin="0,0,0,8"
-                               Text="&#xE712;">
+                               Text="&#xE712;"
+                               Visibility="Collapsed">
                         <TextBlock.RenderTransform>
                             <RotateTransform x:Name="LoadingRotation" CenterX="16" CenterY="16" />
                         </TextBlock.RenderTransform>
@@ -359,7 +359,9 @@
                                     <Storyboard RepeatBehavior="Forever">
                                         <DoubleAnimation Storyboard.TargetName="LoadingRotation"
                                                          Storyboard.TargetProperty="Angle"
-                                                         From="0" To="360" Duration="0:0:1.2" />
+                                                         From="0"
+                                                         To="360"
+                                                         Duration="0:0:1.2" />
                                     </Storyboard>
                                 </BeginStoryboard>
                             </EventTrigger>
@@ -376,6 +378,6 @@
                    VerticalAlignment="Center"
                    FontSize="12"
                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                   Text="就绪" />
+                   Text="" />
     </Grid>
 </Window>
